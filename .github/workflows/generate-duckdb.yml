@@ -30,41 +30,9 @@ jobs:
           duckdb dist/mydatabase.duckdb < src/mydatabase.sql
 
 ## INSTALL SCHEMACRAWLER
-      - id: java-setup
-        name: Set up Java
-        uses: actions/setup-java@v5
-        with:
-          distribution: temurin
-          java-version: 21
-
-      - id: sdkman-setup
-        name: Install SDKMAN
-        shell: bash
-        run: |
-          # Install SDKMAN
-          echo "$SDKMAN_DIR"
-          curl -s "https://get.sdkman.io?ci=true" | bash
-          source "$SDKMAN_DIR/bin/sdkman-init.sh"
-          sdk version
-          # Check for current version of SchemaCrawler
-          echo '$ sdk list schemacrawler'
-          sdk list schemacrawler | cat
-
-      - id: sdkman-install
-        name: Install SchemaCrawler with SDKMAN
-        shell: bash
-        run: |
-          # Install SchemaCrawler
-          source "$SDKMAN_DIR/bin/sdkman-init.sh"
-          sdk install schemacrawler
-
-      - id: sdkman-smoke-test
-        name: Smoke test command
-        shell: bash
-        run: |
-          # Check that SchemaCrawler is installed
-          source "$SDKMAN_DIR/bin/sdkman-init.sh"
-          schemacrawler.sh --version
+      - id: install-schemacrawler
+        name: Install SchemaCrawler on the GitHub Actions runner
+        uses: schemacrawler/SchemaCrawler-Local-Action@v17.11.2
 
 ## GENERATE SCHEMA DIAGRAM
       - id: schemacrawler
@@ -82,8 +50,12 @@ jobs:
             --output-format=html \
             --output-file=dist/mydatabase-schema.html
 
-      - uses: actions/upload-artifact@v7
-        with:
-          name: schema-diagram
-          path: dist/mydatabase-schema.html
-          if-no-files-found: error
+    - id: display-report
+      name: Wrap Mermaid diagram in Markdown and display as job output
+      run: |
+        # Create enclosing Markdown file with Mermaid code block
+        echo '```mermaid' > mermaid-diagram.md
+        cat mermaid-er.mmd >> mermaid-diagram.md
+        echo '```' >> mermaid-diagram.md
+        # Display the wrapped content in workflow output
+        cat mermaid-diagram.md >> $GITHUB_STEP_SUMMARY

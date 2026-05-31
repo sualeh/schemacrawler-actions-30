@@ -1,0 +1,89 @@
+name: Generate DuckDB Schema Diagram
+
+on: [push]
+
+jobs:
+  generate_duckdb:
+    name: Generate DuckDB Schema Diagram
+    runs-on: ubuntu-slim
+
+    env:
+      SDKMAN_DIR: ${{ github.workspace }}/.sdkman
+
+    steps:
+## CHECKOUT CODE
+      - id: checkout
+        name: Checkout code
+        uses: actions/checkout@v6
+
+## CREATE DUCKDB DATABASE FILE
+      - id: setup-duckdb
+        name: Install DuckDB to create the database
+        uses: opt-nc/setup-duckdb-action@v1.2.9
+
+      - id: create-database
+        name: Create DuckDB database
+        shell: bash
+        run: |
+          # Create DuckDB database
+          mkdir dist
+          duckdb dist/mydatabase.duckdb < src/mydatabase.sql
+
+## INSTALL SCHEMACRAWLER
+      - id: java-setup
+        name: Set up Java
+        uses: actions/setup-java@v5
+        with:
+          distribution: temurin
+          java-version: 21
+
+      - id: sdkman-setup
+        name: Install SDKMAN
+        shell: bash
+        run: |
+          # Install SDKMAN
+          echo "$SDKMAN_DIR"
+          curl -s "https://get.sdkman.io?ci=true" | bash
+          source "$SDKMAN_DIR/bin/sdkman-init.sh"
+          sdk version
+          # Check for current version of SchemaCrawler
+          echo '$ sdk list schemacrawler'
+          sdk list schemacrawler | cat
+
+      - id: sdkman-install
+        name: Install SchemaCrawler with SDKMAN
+        shell: bash
+        run: |
+          # Install SchemaCrawler
+          source "$SDKMAN_DIR/bin/sdkman-init.sh"
+          sdk install schemacrawler
+
+      - id: sdkman-smoke-test
+        name: Smoke test command
+        shell: bash
+        run: |
+          # Check that SchemaCrawler is installed
+          source "$SDKMAN_DIR/bin/sdkman-init.sh"
+          schemacrawler.sh --version
+
+## GENERATE SCHEMA DIAGRAM
+      - id: schemacrawler
+        name: Run SchemaCrawler on DuckDB Database
+        shell: bash
+        env:
+          SDKMAN_DIR: ${{ github.workspace }}/.sdkman
+        run: |
+          source "$SDKMAN_DIR/bin/sdkman-init.sh"
+          schemacrawler.sh \
+            --url=jdbc:duckdb:dist/mydatabase.duckdb \
+            --info-level=standard \
+            --command=schema \
+            --table-types=TABLE \
+            --output-format=html \
+            --output-file=dist/mydatabase-schema.html
+
+      - uses: actions/upload-artifact@v7
+        with:
+          name: schema-diagram
+          path: dist/mydatabase-schema.html
+          if-no-files-found: error

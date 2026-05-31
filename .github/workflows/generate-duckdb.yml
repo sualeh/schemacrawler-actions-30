@@ -1,6 +1,7 @@
 name: Generate DuckDB Schema Diagram
 
-on: [push]
+on:
+  workflow_dispatch:
 
 jobs:
   generate_duckdb:
@@ -42,17 +43,18 @@ jobs:
         schemacrawler.sh \
           --url=jdbc:duckdb:dist/mydatabase.duckdb \
           --info-level=standard \
-          --command=schema \
+          --command script \
+          --script-language python \
+          --script /scripts/mermaid.py \
           --table-types=TABLE \
-          --output-format=html \
-          --output-file=dist/mydatabase-schema.html
+          --output-file=dist/mydatabase-schema.mmd
 
     - id: display-report
       name: Wrap Mermaid diagram in Markdown and display as job output
       run: |
         # Create enclosing Markdown file with Mermaid code block
         echo '```mermaid' > mermaid-diagram.md
-        cat mermaid-er.mmd >> mermaid-diagram.md
+        cat dist/mydatabase-schema.mmd >> mermaid-diagram.md
         echo '```' >> mermaid-diagram.md
         # Display the wrapped content in workflow output
         cat mermaid-diagram.md >> $GITHUB_STEP_SUMMARY

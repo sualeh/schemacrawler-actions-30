@@ -7,48 +7,45 @@ jobs:
     name: Generate DuckDB Schema Diagram
     runs-on: ubuntu-slim
 
-    env:
-      SDKMAN_DIR: ${{ github.workspace }}/.sdkman
-
     steps:
 ## CHECKOUT CODE
-      - id: checkout
-        name: Checkout code
-        uses: actions/checkout@v6
+    - id: checkout
+      name: Checkout code
+      uses: actions/checkout@v6
 
 ## CREATE DUCKDB DATABASE FILE
-      - id: setup-duckdb
-        name: Install DuckDB to create the database
-        uses: opt-nc/setup-duckdb-action@v1.2.9
+    - id: setup-duckdb
+      name: Install DuckDB to create the database
+      uses: opt-nc/setup-duckdb-action@v1.2.9
 
-      - id: create-database
-        name: Create DuckDB database
-        shell: bash
-        run: |
-          # Create DuckDB database
-          mkdir dist
-          duckdb dist/mydatabase.duckdb < src/mydatabase.sql
+    - id: create-database
+      name: Create DuckDB database
+      shell: bash
+      run: |
+        # Create DuckDB database
+        mkdir dist
+        duckdb dist/mydatabase.duckdb < src/mydatabase.sql
 
 ## INSTALL SCHEMACRAWLER
-      - id: install-schemacrawler
-        name: Install SchemaCrawler on the GitHub Actions runner
-        uses: schemacrawler/SchemaCrawler-Local-Action@v17.11.2
+    - id: install-schemacrawler
+      name: Install SchemaCrawler on the GitHub Actions runner
+      uses: schemacrawler/SchemaCrawler-Local-Action@v17.11.2
 
 ## GENERATE SCHEMA DIAGRAM
-      - id: schemacrawler
-        name: Run SchemaCrawler on DuckDB Database
-        shell: bash
-        env:
-          SDKMAN_DIR: ${{ github.workspace }}/.sdkman
-        run: |
-          source "$SDKMAN_DIR/bin/sdkman-init.sh"
-          schemacrawler.sh \
-            --url=jdbc:duckdb:dist/mydatabase.duckdb \
-            --info-level=standard \
-            --command=schema \
-            --table-types=TABLE \
-            --output-format=html \
-            --output-file=dist/mydatabase-schema.html
+    - id: schemacrawler
+      name: Run SchemaCrawler on DuckDB Database
+      shell: bash
+      env:
+        SDKMAN_DIR: ${{ github.workspace }}/.sdkman
+      run: |
+        source "$SDKMAN_DIR/bin/sdkman-init.sh"
+        schemacrawler.sh \
+          --url=jdbc:duckdb:dist/mydatabase.duckdb \
+          --info-level=standard \
+          --command=schema \
+          --table-types=TABLE \
+          --output-format=html \
+          --output-file=dist/mydatabase-schema.html
 
     - id: display-report
       name: Wrap Mermaid diagram in Markdown and display as job output
